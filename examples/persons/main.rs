@@ -1,13 +1,23 @@
 extern crate rusqlite;
+use std::ffi::{CStr};
 use rusqlite::{Connection, Result};
 
 struct Person {
     id: i32,
     name: String,
 }
+
+const DDL: &'static CStr = c"
+CREATE TABLE IF NOT EXISTS persons (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL
+)
+";
+
 fn main() -> Result<()> {
     let conn = Connection::open_in_memory()?;
 
+    /*
     conn.execute(
         "CREATE TABLE IF NOT EXISTS persons (
             id INTEGER PRIMARY KEY,
@@ -15,6 +25,8 @@ fn main() -> Result<()> {
         )",
         (), // empty list of parameters.
     )?;
+    */
+    conn.exec(DDL)?;
 
     conn.execute(
         "INSERT INTO persons (name) VALUES (?1), (?2), (?3)",

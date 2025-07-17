@@ -203,6 +203,14 @@ impl InnerConnection {
     pub fn last_insert_rowid(&self) -> i64 {
         unsafe { ffi::sqlite3_last_insert_rowid(self.db()) }
     }
+    
+    pub fn exec(&self, sql: &'static CStr) -> Result<()> {
+        let r = unsafe { ffi::sqlite3_exec(self.db(), sql.as_ptr(), None, ptr::null_mut(), ptr::null_mut()) };
+        if r != ffi::SQLITE_OK {
+            return Err(unsafe { error_from_handle(self.db(), r) });
+        }
+        Ok(())
+    }
 
     pub fn prepare<'a>(
         &mut self,
