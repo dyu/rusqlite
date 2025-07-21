@@ -546,6 +546,11 @@ impl Connection {
     pub fn exec(&self, sql: &'static CStr) -> Result<()> {
         self.db.borrow_mut().exec(sql)
     }
+    
+    #[inline]
+    pub fn exec_ptr(&self, sql: *const u8) -> Result<()> {
+        self.db.borrow_mut().exec_ptr(sql)
+    }
 
     /// Convenience method to prepare and execute a single SQL statement.
     ///

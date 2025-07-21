@@ -211,6 +211,14 @@ impl InnerConnection {
         }
         Ok(())
     }
+    
+    pub fn exec_ptr(&self, sql: *const u8) -> Result<()> {
+        let r = unsafe { ffi::sqlite3_exec(self.db(), sql as *const i8, None, ptr::null_mut(), ptr::null_mut()) };
+        if r != ffi::SQLITE_OK {
+            return Err(unsafe { error_from_handle(self.db(), r) });
+        }
+        Ok(())
+    }
 
     pub fn prepare<'a>(
         &mut self,
