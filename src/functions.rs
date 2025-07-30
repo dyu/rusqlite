@@ -84,7 +84,7 @@ unsafe fn report_error(ctx: *mut sqlite3_context, err: &Error) {
     }
 }
 
-unsafe extern "C" fn free_boxed_value<T>(p: *mut c_void) {
+extern "C" fn free_boxed_value<T>(p: *mut c_void) {
     drop(Box::from_raw(p.cast::<T>()));
 }
 
@@ -569,7 +569,7 @@ impl InnerConnection {
         F: Fn(&Context<'_>) -> Result<T> + Send + 'static,
         T: SqlFnOutput,
     {
-        unsafe extern "C" fn call_boxed_closure<F, T>(
+        extern "C" fn call_boxed_closure<F, T>(
             ctx: *mut sqlite3_context,
             argc: c_int,
             argv: *mut *mut sqlite3_value,
@@ -701,7 +701,7 @@ unsafe fn aggregate_context<A>(ctx: *mut sqlite3_context, bytes: usize) -> Optio
     Some(pac)
 }
 
-unsafe extern "C" fn call_boxed_step<A, D, T>(
+extern "C" fn call_boxed_step<A, D, T>(
     ctx: *mut sqlite3_context,
     argc: c_int,
     argv: *mut *mut sqlite3_value,
@@ -726,7 +726,7 @@ unsafe extern "C" fn call_boxed_step<A, D, T>(
             args: slice::from_raw_parts(argv, argc as usize),
         };
 
-        #[expect(clippy::unnecessary_cast)]
+        #[allow(clippy::unnecessary_cast)]
         if (*pac as *mut A).is_null() {
             *pac = Box::into_raw(Box::new((*boxed_aggr).init(&mut ctx)?));
         }
@@ -747,7 +747,7 @@ unsafe extern "C" fn call_boxed_step<A, D, T>(
 }
 
 #[cfg(feature = "window")]
-unsafe extern "C" fn call_boxed_inverse<A, W, T>(
+extern "C" fn call_boxed_inverse<A, W, T>(
     ctx: *mut sqlite3_context,
     argc: c_int,
     argv: *mut *mut sqlite3_value,
@@ -786,7 +786,7 @@ unsafe extern "C" fn call_boxed_inverse<A, W, T>(
     };
 }
 
-unsafe extern "C" fn call_boxed_final<A, D, T>(ctx: *mut sqlite3_context)
+extern "C" fn call_boxed_final<A, D, T>(ctx: *mut sqlite3_context)
 where
     A: RefUnwindSafe + UnwindSafe,
     D: Aggregate<A, T>,
@@ -797,7 +797,7 @@ where
     let a: Option<A> = match aggregate_context(ctx, 0) {
         Some(pac) =>
         {
-            #[expect(clippy::unnecessary_cast)]
+            #[allow(clippy::unnecessary_cast)]
             if (*pac as *mut A).is_null() {
                 None
             } else {
@@ -828,7 +828,7 @@ where
 }
 
 #[cfg(feature = "window")]
-unsafe extern "C" fn call_boxed_value<A, W, T>(ctx: *mut sqlite3_context)
+extern "C" fn call_boxed_value<A, W, T>(ctx: *mut sqlite3_context)
 where
     A: RefUnwindSafe + UnwindSafe,
     W: WindowAggregate<A, T>,
@@ -837,7 +837,7 @@ where
     // Within the xValue callback, it is customary to set N=0 in calls to
     // sqlite3_aggregate_context(C,N) so that no pointless memory allocations occur.
     let pac = aggregate_context(ctx, 0).filter(|&pac| {
-        #[expect(clippy::unnecessary_cast)]
+        #[allow(clippy::unnecessary_cast)]
         !(*pac as *mut A).is_null()
     });
 

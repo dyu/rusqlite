@@ -161,7 +161,7 @@ impl InnerConnection {
     where
         F: FnMut(Action, &str, &str, &PreUpdateCase) + Send + 'static,
     {
-        unsafe extern "C" fn call_boxed_closure<F>(
+        extern "C" fn call_boxed_closure<F>(
             p_arg: *mut c_void,
             sqlite: *mut ffi::sqlite3,
             action_code: c_int,

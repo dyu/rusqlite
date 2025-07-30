@@ -1,5 +1,5 @@
 //! Commit, Data Change and Rollback Notification Callbacks
-#![expect(non_camel_case_types)]
+#![allow(non_camel_case_types)]
 
 use std::os::raw::{c_char, c_int, c_void};
 use std::panic::catch_unwind;
@@ -390,7 +390,7 @@ impl Connection {
     /// Note that the `sqlite3_wal_autocheckpoint()` interface and the `wal_autocheckpoint` pragma
     /// both invoke `sqlite3_wal_hook()` and will overwrite any prior `sqlite3_wal_hook()` settings.
     pub fn wal_hook(&self, hook: Option<fn(&Wal, c_int) -> Result<()>>) {
-        unsafe extern "C" fn wal_hook_callback(
+        extern "C" fn wal_hook_callback(
             client_data: *mut c_void,
             db: *mut ffi::sqlite3,
             db_name: *const c_char,
@@ -527,7 +527,7 @@ impl InnerConnection {
     where
         F: FnMut() -> bool + Send + 'static,
     {
-        unsafe extern "C" fn call_boxed_closure<F>(p_arg: *mut c_void) -> c_int
+        extern "C" fn call_boxed_closure<F>(p_arg: *mut c_void) -> c_int
         where
             F: FnMut() -> bool,
         {
@@ -592,7 +592,7 @@ impl InnerConnection {
     where
         F: FnMut() + Send + 'static,
     {
-        unsafe extern "C" fn call_boxed_closure<F>(p_arg: *mut c_void)
+        extern "C" fn call_boxed_closure<F>(p_arg: *mut c_void)
         where
             F: FnMut(),
         {
@@ -646,7 +646,7 @@ impl InnerConnection {
     where
         F: FnMut(Action, &str, &str, i64) + Send + 'static,
     {
-        unsafe extern "C" fn call_boxed_closure<F>(
+        extern "C" fn call_boxed_closure<F>(
             p_arg: *mut c_void,
             action_code: c_int,
             p_db_name: *const c_char,
@@ -718,7 +718,7 @@ impl InnerConnection {
     where
         F: FnMut() -> bool + Send + 'static,
     {
-        unsafe extern "C" fn call_boxed_closure<F>(p_arg: *mut c_void) -> c_int
+        extern "C" fn call_boxed_closure<F>(p_arg: *mut c_void) -> c_int
         where
             F: FnMut() -> bool,
         {
@@ -767,7 +767,7 @@ impl InnerConnection {
     where
         F: for<'r> FnMut(AuthContext<'r>) -> Authorization + Send + 'static,
     {
-        unsafe extern "C" fn call_boxed_closure<'c, F>(
+        extern "C" fn call_boxed_closure<'c, F>(
             p_arg: *mut c_void,
             action_code: c_int,
             param1: *const c_char,
@@ -800,7 +800,7 @@ impl InnerConnection {
 
         let callback_fn = authorizer
             .as_ref()
-            .map(|_| call_boxed_closure::<'c, F> as unsafe extern "C" fn(_, _, _, _, _, _) -> _);
+            .map(|_| call_boxed_closure::<'c, F> as extern "C" fn(_, _, _, _, _, _) -> _);
         let boxed_authorizer = authorizer.map(Box::new);
 
         match unsafe {

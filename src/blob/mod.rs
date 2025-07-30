@@ -393,7 +393,7 @@ impl io::Seek for Blob<'_> {
     }
 }
 
-#[expect(unused_must_use)]
+#[allow(unused_must_use)]
 impl Drop for Blob<'_> {
     #[inline]
     fn drop(&mut self) {

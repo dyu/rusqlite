@@ -10,7 +10,7 @@ use crate::{Connection, Result};
 /// See [Database Connection Configuration Options](https://sqlite.org/c3ref/c_dbconfig_enable_fkey.html) for details.
 #[repr(i32)]
 #[derive(Copy, Clone, Debug)]
-#[expect(non_camel_case_types)]
+#[allow(non_camel_case_types)]
 #[non_exhaustive]
 pub enum DbConfig {
     //SQLITE_DBCONFIG_MAINDBNAME = 1000, /* const char* */

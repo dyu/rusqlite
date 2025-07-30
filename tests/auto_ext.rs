@@ -8,7 +8,7 @@ fn auto_ext() -> rusqlite::Result<()> {
     fn test_ok(_: Connection) -> Result<()> {
         Ok(())
     }
-    unsafe extern "C" fn sqlite_test_ok(
+    extern "C" fn sqlite_test_ok(
         db: *mut ffi::sqlite3,
         pz_err_msg: *mut *mut c_char,
         _: *const ffi::sqlite3_api_routines,
@@ -21,7 +21,7 @@ fn auto_ext() -> rusqlite::Result<()> {
             Some("AutoExtErr".to_owned()),
         ))
     }
-    unsafe extern "C" fn sqlite_test_err(
+    extern "C" fn sqlite_test_err(
         db: *mut ffi::sqlite3,
         pz_err_msg: *mut *mut c_char,
         _: *const ffi::sqlite3_api_routines,

@@ -546,7 +546,7 @@ mod bindings {
                     r#"extern "C" {
     pub fn sqlite3_auto_extension(
         xEntryPoint: ::std::option::Option<
-            unsafe extern "C" fn(
+            extern "C" fn(
                 db: *mut sqlite3,
                 pzErrMsg: *mut *mut ::std::os::raw::c_char,
                 _: *const sqlite3_api_routines,
@@ -560,7 +560,7 @@ mod bindings {
                     r#"extern "C" {
     pub fn sqlite3_cancel_auto_extension(
         xEntryPoint: ::std::option::Option<
-            unsafe extern "C" fn(
+            extern "C" fn(
                 db: *mut sqlite3,
                 pzErrMsg: *mut *mut ::std::os::raw::c_char,
                 _: *const sqlite3_api_routines,
@@ -718,7 +718,7 @@ mod loadable_extension {
                     pub unsafe fn #sqlite3_fn_name(#args arg3: ::std::os::raw::c_int, arg4: *mut ::std::os::raw::c_int) #ty {
                         let ptr = #ptr_name.load(::std::sync::atomic::Ordering::Acquire);
                         assert!(!ptr.is_null(), "SQLite API not initialized");
-                        let fun: unsafe extern "C" fn(#args #varargs) #ty = ::std::mem::transmute(ptr);
+                        let fun: extern "C" fn(#args #varargs) #ty = ::std::mem::transmute(ptr);
                         (fun)(#arg_names, arg3, arg4)
                     }
                 }
@@ -728,7 +728,7 @@ mod loadable_extension {
                     pub unsafe fn #sqlite3_fn_name(#args arg3: *const ::std::os::raw::c_char) #ty {
                         let ptr = #ptr_name.load(::std::sync::atomic::Ordering::Acquire);
                         assert!(!ptr.is_null(), "SQLite API not initialized");
-                        let fun: unsafe extern "C" fn(#args #varargs) #ty = ::std::mem::transmute(ptr);
+                        let fun: extern "C" fn(#args #varargs) #ty = ::std::mem::transmute(ptr);
                         (fun)(#arg_names, arg3)
                     }
                 }
@@ -738,7 +738,7 @@ mod loadable_extension {
                     pub unsafe fn #sqlite3_fn_name(#args) #ty {
                         let ptr = #ptr_name.load(::std::sync::atomic::Ordering::Acquire);
                         assert!(!ptr.is_null(), "SQLite API not initialized or SQLite feature omitted");
-                        let fun: unsafe extern "C" fn(#args #varargs) #ty = ::std::mem::transmute(ptr);
+                        let fun: extern "C" fn(#args #varargs) #ty = ::std::mem::transmute(ptr);
                         (fun)(#arg_names)
                     }
                 }

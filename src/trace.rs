@@ -150,7 +150,7 @@ impl Connection {
     /// connection. Setting a new tracer clears the old one.
     #[deprecated(since = "0.33.0", note = "use trace_v2 instead")]
     pub fn trace(&mut self, trace_fn: Option<fn(&str)>) {
-        unsafe extern "C" fn trace_callback(p_arg: *mut c_void, z_sql: *const c_char) {
+        extern "C" fn trace_callback(p_arg: *mut c_void, z_sql: *const c_char) {
             let trace_fn: fn(&str) = mem::transmute(p_arg);
             let s = CStr::from_ptr(z_sql).to_string_lossy();
             drop(catch_unwind(|| trace_fn(&s)));
@@ -174,7 +174,7 @@ impl Connection {
     /// connection. Setting a new profiler clears the old one.
     #[deprecated(since = "0.33.0", note = "use trace_v2 instead")]
     pub fn profile(&mut self, profile_fn: Option<fn(&str, Duration)>) {
-        unsafe extern "C" fn profile_callback(
+        extern "C" fn profile_callback(
             p_arg: *mut c_void,
             z_sql: *const c_char,
             nanoseconds: u64,
@@ -197,7 +197,7 @@ impl Connection {
 
     /// Register or clear a trace callback function
     pub fn trace_v2(&self, mask: TraceEventCodes, trace_fn: Option<fn(TraceEvent<'_>)>) {
-        unsafe extern "C" fn trace_callback(
+        extern "C" fn trace_callback(
             evt: c_uint,
             ctx: *mut c_void,
             p: *mut c_void,

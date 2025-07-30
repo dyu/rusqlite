@@ -322,7 +322,7 @@ pub trait UpdateVTab<'vtab>: CreateVTab<'vtab> {
 /// See [Virtual Table Constraint Operator Codes](https://sqlite.org/c3ref/c_index_constraint_eq.html) for details.
 #[derive(Debug, Eq, PartialEq)]
 #[allow(missing_docs)]
-#[expect(non_camel_case_types)]
+#[allow(non_camel_case_types)]
 pub enum IndexConstraintOp {
     SQLITE_INDEX_CONSTRAINT_EQ,
     SQLITE_INDEX_CONSTRAINT_GT,
@@ -928,11 +928,11 @@ pub fn parameter(c_slice: &[u8]) -> Result<(&str, &str)> {
 }
 
 // FIXME copy/paste from function.rs
-unsafe extern "C" fn free_boxed_value<T>(p: *mut c_void) {
+extern "C" fn free_boxed_value<T>(p: *mut c_void) {
     drop(Box::from_raw(p.cast::<T>()));
 }
 
-unsafe extern "C" fn rust_create<'vtab, T>(
+extern "C" fn rust_create<'vtab, T>(
     db: *mut ffi::sqlite3,
     aux: *mut c_void,
     argc: c_int,
@@ -974,7 +974,7 @@ where
     }
 }
 
-unsafe extern "C" fn rust_connect<'vtab, T>(
+extern "C" fn rust_connect<'vtab, T>(
     db: *mut ffi::sqlite3,
     aux: *mut c_void,
     argc: c_int,
@@ -1016,7 +1016,7 @@ where
     }
 }
 
-unsafe extern "C" fn rust_best_index<'vtab, T>(
+extern "C" fn rust_best_index<'vtab, T>(
     vtab: *mut sqlite3_vtab,
     info: *mut ffi::sqlite3_index_info,
 ) -> c_int
@@ -1040,7 +1040,7 @@ where
     }
 }
 
-unsafe extern "C" fn rust_disconnect<'vtab, T>(vtab: *mut sqlite3_vtab) -> c_int
+extern "C" fn rust_disconnect<'vtab, T>(vtab: *mut sqlite3_vtab) -> c_int
 where
     T: VTab<'vtab>,
 {
@@ -1052,7 +1052,7 @@ where
     ffi::SQLITE_OK
 }
 
-unsafe extern "C" fn rust_destroy<'vtab, T>(vtab: *mut sqlite3_vtab) -> c_int
+extern "C" fn rust_destroy<'vtab, T>(vtab: *mut sqlite3_vtab) -> c_int
 where
     T: CreateVTab<'vtab>,
 {
@@ -1078,7 +1078,7 @@ where
     }
 }
 
-unsafe extern "C" fn rust_open<'vtab, T>(
+extern "C" fn rust_open<'vtab, T>(
     vtab: *mut sqlite3_vtab,
     pp_cursor: *mut *mut sqlite3_vtab_cursor,
 ) -> c_int
@@ -1105,7 +1105,7 @@ where
     }
 }
 
-unsafe extern "C" fn rust_close<C>(cursor: *mut sqlite3_vtab_cursor) -> c_int
+extern "C" fn rust_close<C>(cursor: *mut sqlite3_vtab_cursor) -> c_int
 where
     C: VTabCursor,
 {
@@ -1114,7 +1114,7 @@ where
     ffi::SQLITE_OK
 }
 
-unsafe extern "C" fn rust_filter<C>(
+extern "C" fn rust_filter<C>(
     cursor: *mut sqlite3_vtab_cursor,
     idx_num: c_int,
     idx_str: *const c_char,
@@ -1138,7 +1138,7 @@ where
     cursor_error(cursor, (*cr).filter(idx_num, idx_name, &values))
 }
 
-unsafe extern "C" fn rust_next<C>(cursor: *mut sqlite3_vtab_cursor) -> c_int
+extern "C" fn rust_next<C>(cursor: *mut sqlite3_vtab_cursor) -> c_int
 where
     C: VTabCursor,
 {
@@ -1146,7 +1146,7 @@ where
     cursor_error(cursor, (*cr).next())
 }
 
-unsafe extern "C" fn rust_eof<C>(cursor: *mut sqlite3_vtab_cursor) -> c_int
+extern "C" fn rust_eof<C>(cursor: *mut sqlite3_vtab_cursor) -> c_int
 where
     C: VTabCursor,
 {
@@ -1154,7 +1154,7 @@ where
     (*cr).eof() as c_int
 }
 
-unsafe extern "C" fn rust_column<C>(
+extern "C" fn rust_column<C>(
     cursor: *mut sqlite3_vtab_cursor,
     ctx: *mut ffi::sqlite3_context,
     i: c_int,
@@ -1167,7 +1167,7 @@ where
     result_error(ctx, (*cr).column(&mut ctxt, i))
 }
 
-unsafe extern "C" fn rust_rowid<C>(
+extern "C" fn rust_rowid<C>(
     cursor: *mut sqlite3_vtab_cursor,
     p_rowid: *mut ffi::sqlite3_int64,
 ) -> c_int
@@ -1184,7 +1184,7 @@ where
     }
 }
 
-unsafe extern "C" fn rust_update<'vtab, T>(
+extern "C" fn rust_update<'vtab, T>(
     vtab: *mut sqlite3_vtab,
     argc: c_int,
     argv: *mut *mut ffi::sqlite3_value,

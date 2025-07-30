@@ -684,7 +684,7 @@ impl Statement<'_> {
 
     #[cfg(not(feature = "extra_check"))]
     #[inline]
-    #[expect(clippy::unnecessary_wraps)]
+    #[allow(clippy::unnecessary_wraps)]
     fn check_update(&self) -> Result<()> {
         Ok(())
     }
@@ -738,7 +738,7 @@ impl Statement<'_> {
 
     #[cfg(not(feature = "extra_check"))]
     #[inline]
-    #[expect(clippy::unnecessary_wraps)]
+    #[allow(clippy::unnecessary_wraps)]
     pub(crate) fn check_no_tail(&self) -> Result<()> {
         Ok(())
     }
@@ -775,7 +775,7 @@ impl fmt::Debug for Statement<'_> {
 }
 
 impl Drop for Statement<'_> {
-    #[expect(unused_must_use)]
+    #[allow(unused_must_use)]
     #[inline]
     fn drop(&mut self) {
         self.finalize_();
@@ -1017,7 +1017,7 @@ mod test {
         assert_eq!(1, doubled_id);
 
         // second row should be an `Err`
-        #[expect(clippy::match_wild_err_arm)]
+        #[allow(clippy::match_wild_err_arm)]
         match rows.next().unwrap() {
             Ok(_) => panic!("invalid Ok"),
             Err(Error::SqliteSingleThreadedMode) => (),

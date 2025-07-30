@@ -9,7 +9,7 @@ use std::panic::catch_unwind;
 pub type AutoExtension = fn(Connection) -> Result<()>;
 
 /// Raw automatic extension initialization routine
-pub type RawAutoExtension = unsafe extern "C" fn(
+pub type RawAutoExtension = extern "C" fn(
     db: *mut ffi::sqlite3,
     pz_err_msg: *mut *mut c_char,
     _: *const ffi::sqlite3_api_routines,
