@@ -87,7 +87,7 @@ unsafe impl<'vtab, T: VTab<'vtab>> Send for Module<'vtab, T> {}
 unsafe impl<'vtab, T: VTab<'vtab>> Sync for Module<'vtab, T> {}
 
 union ModuleZeroHack {
-    bytes: [u8; size_of::<ffi::sqlite3_module>()],
+    bytes: [u8; std::mem::size_of::<ffi::sqlite3_module>()],
     module: ffi::sqlite3_module,
 }
 
@@ -96,7 +96,7 @@ union ModuleZeroHack {
 // structs are allowed to be zeroed.
 const ZERO_MODULE: ffi::sqlite3_module = unsafe {
     ModuleZeroHack {
-        bytes: [0_u8; size_of::<ffi::sqlite3_module>()],
+        bytes: [0_u8; std::mem::size_of::<ffi::sqlite3_module>()],
     }
     .module
 };
@@ -929,7 +929,7 @@ pub fn parameter(c_slice: &[u8]) -> Result<(&str, &str)> {
 
 // FIXME copy/paste from function.rs
 extern "C" fn free_boxed_value<T>(p: *mut c_void) {
-    drop(Box::from_raw(p.cast::<T>()));
+    unsafe { drop(Box::from_raw(p.cast::<T>())); }
 }
 
 extern "C" fn rust_create<'vtab, T>(
@@ -947,12 +947,12 @@ where
 
     let mut conn = VTabConnection(db);
     let aux = aux.cast::<T::Aux>();
-    let args = slice::from_raw_parts(argv, argc as usize);
+    let args = unsafe { slice::from_raw_parts(argv, argc as usize) };
     let vec = args
         .iter()
-        .map(|&cs| CStr::from_ptr(cs).to_bytes()) // FIXME .to_str() -> Result<&str, Utf8Error>
+        .map(|&cs| unsafe { CStr::from_ptr(cs).to_bytes() }) // FIXME .to_str() -> Result<&str, Utf8Error>
         .collect::<Vec<_>>();
-    match T::create(&mut conn, aux.as_ref(), &vec[..]) {
+    unsafe { match T::create(&mut conn, aux.as_ref(), &vec[..]) {
         Ok((sql, vtab)) => match std::ffi::CString::new(sql) {
             Ok(c_sql) => {
                 let rc = ffi::sqlite3_declare_vtab(db, c_sql.as_ptr());
@@ -971,7 +971,7 @@ where
             }
         },
         Err(err) => to_sqlite_error(&err, err_msg),
-    }
+    } }
 }
 
 extern "C" fn rust_connect<'vtab, T>(
@@ -989,12 +989,12 @@ where
 
     let mut conn = VTabConnection(db);
     let aux = aux.cast::<T::Aux>();
-    let args = slice::from_raw_parts(argv, argc as usize);
+    let args = unsafe{ slice::from_raw_parts(argv, argc as usize) };
     let vec = args
         .iter()
-        .map(|&cs| CStr::from_ptr(cs).to_bytes()) // FIXME .to_str() -> Result<&str, Utf8Error>
+        .map(|&cs| unsafe { CStr::from_ptr(cs).to_bytes() }) // FIXME .to_str() -> Result<&str, Utf8Error>
         .collect::<Vec<_>>();
-    match T::connect(&mut conn, aux.as_ref(), &vec[..]) {
+    unsafe { match T::connect(&mut conn, aux.as_ref(), &vec[..]) {
         Ok((sql, vtab)) => match std::ffi::CString::new(sql) {
             Ok(c_sql) => {
                 let rc = ffi::sqlite3_declare_vtab(db, c_sql.as_ptr());
@@ -1013,7 +1013,7 @@ where
             }
         },
         Err(err) => to_sqlite_error(&err, err_msg),
-    }
+    } }
 }
 
 extern "C" fn rust_best_index<'vtab, T>(
@@ -1025,7 +1025,7 @@ where
 {
     let vt = vtab.cast::<T>();
     let mut idx_info = IndexInfo(info);
-    match (*vt).best_index(&mut idx_info) {
+    unsafe { match (*vt).best_index(&mut idx_info) {
         Ok(_) => ffi::SQLITE_OK,
         Err(Error::SqliteFailure(err, s)) => {
             if let Some(err_msg) = s {
@@ -1037,7 +1037,7 @@ where
             set_err_msg(vtab, &err.to_string());
             ffi::SQLITE_ERROR
         }
-    }
+    } }
 }
 
 extern "C" fn rust_disconnect<'vtab, T>(vtab: *mut sqlite3_vtab) -> c_int
@@ -1048,7 +1048,7 @@ where
         return ffi::SQLITE_OK;
     }
     let vtab = vtab.cast::<T>();
-    drop(Box::from_raw(vtab));
+    unsafe { drop(Box::from_raw(vtab)); }
     ffi::SQLITE_OK
 }
 
@@ -1060,7 +1060,7 @@ where
         return ffi::SQLITE_OK;
     }
     let vt = vtab.cast::<T>();
-    match (*vt).destroy() {
+    unsafe { match (*vt).destroy() {
         Ok(_) => {
             drop(Box::from_raw(vt));
             ffi::SQLITE_OK
@@ -1075,7 +1075,7 @@ where
             set_err_msg(vtab, &err.to_string());
             ffi::SQLITE_ERROR
         }
-    }
+    } }
 }
 
 extern "C" fn rust_open<'vtab, T>(
@@ -1086,7 +1086,7 @@ where
     T: VTab<'vtab> + 'vtab,
 {
     let vt = vtab.cast::<T>();
-    match (*vt).open() {
+    unsafe { match (*vt).open() {
         Ok(cursor) => {
             let boxed_cursor: *mut T::Cursor = Box::into_raw(Box::new(cursor));
             *pp_cursor = boxed_cursor.cast::<sqlite3_vtab_cursor>();
@@ -1102,7 +1102,7 @@ where
             set_err_msg(vtab, &err.to_string());
             ffi::SQLITE_ERROR
         }
-    }
+    } }
 }
 
 extern "C" fn rust_close<C>(cursor: *mut sqlite3_vtab_cursor) -> c_int
@@ -1110,7 +1110,7 @@ where
     C: VTabCursor,
 {
     let cr = cursor.cast::<C>();
-    drop(Box::from_raw(cr));
+    unsafe { drop(Box::from_raw(cr)) };
     ffi::SQLITE_OK
 }
 
@@ -1129,13 +1129,13 @@ where
     let idx_name = if idx_str.is_null() {
         None
     } else {
-        let c_slice = CStr::from_ptr(idx_str).to_bytes();
-        Some(str::from_utf8_unchecked(c_slice))
+        let c_slice = unsafe { CStr::from_ptr(idx_str).to_bytes() };
+        unsafe { Some(str::from_utf8_unchecked(c_slice)) }
     };
-    let args = slice::from_raw_parts_mut(argv, argc as usize);
+    let args = unsafe { slice::from_raw_parts_mut(argv, argc as usize) };
     let values = Values { args };
     let cr = cursor as *mut C;
-    cursor_error(cursor, (*cr).filter(idx_num, idx_name, &values))
+    unsafe { cursor_error(cursor, (*cr).filter(idx_num, idx_name, &values)) }
 }
 
 extern "C" fn rust_next<C>(cursor: *mut sqlite3_vtab_cursor) -> c_int
@@ -1143,7 +1143,7 @@ where
     C: VTabCursor,
 {
     let cr = cursor as *mut C;
-    cursor_error(cursor, (*cr).next())
+    unsafe { cursor_error(cursor, (*cr).next()) }
 }
 
 extern "C" fn rust_eof<C>(cursor: *mut sqlite3_vtab_cursor) -> c_int
@@ -1151,7 +1151,7 @@ where
     C: VTabCursor,
 {
     let cr = cursor.cast::<C>();
-    (*cr).eof() as c_int
+    unsafe { (*cr).eof() as c_int }
 }
 
 extern "C" fn rust_column<C>(
@@ -1164,7 +1164,7 @@ where
 {
     let cr = cursor.cast::<C>();
     let mut ctxt = Context(ctx);
-    result_error(ctx, (*cr).column(&mut ctxt, i))
+    unsafe { result_error(ctx, (*cr).column(&mut ctxt, i)) }
 }
 
 extern "C" fn rust_rowid<C>(
@@ -1175,13 +1175,13 @@ where
     C: VTabCursor,
 {
     let cr = cursor.cast::<C>();
-    match (*cr).rowid() {
+    unsafe { match (*cr).rowid() {
         Ok(rowid) => {
             *p_rowid = rowid;
             ffi::SQLITE_OK
         }
         err => cursor_error(cursor, err),
-    }
+    } }
 }
 
 extern "C" fn rust_update<'vtab, T>(
@@ -1192,7 +1192,7 @@ extern "C" fn rust_update<'vtab, T>(
 ) -> c_int
 where
     T: UpdateVTab<'vtab> + 'vtab,
-{
+{ unsafe {
     assert!(argc >= 1);
     let args = slice::from_raw_parts_mut(argv, argc as usize);
     let vt = vtab.cast::<T>();
@@ -1225,7 +1225,7 @@ where
             ffi::SQLITE_ERROR
         }
     }
-}
+} }
 
 /// Virtual table cursors can set an error message by assigning a string to
 /// `zErrMsg`.

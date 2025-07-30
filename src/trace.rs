@@ -151,8 +151,8 @@ impl Connection {
     #[deprecated(since = "0.33.0", note = "use trace_v2 instead")]
     pub fn trace(&mut self, trace_fn: Option<fn(&str)>) {
         extern "C" fn trace_callback(p_arg: *mut c_void, z_sql: *const c_char) {
-            let trace_fn: fn(&str) = mem::transmute(p_arg);
-            let s = CStr::from_ptr(z_sql).to_string_lossy();
+            let trace_fn: fn(&str) = unsafe { mem::transmute(p_arg) };
+            let s = unsafe { CStr::from_ptr(z_sql).to_string_lossy() };
             drop(catch_unwind(|| trace_fn(&s)));
         }
 
@@ -179,8 +179,8 @@ impl Connection {
             z_sql: *const c_char,
             nanoseconds: u64,
         ) {
-            let profile_fn: fn(&str, Duration) = mem::transmute(p_arg);
-            let s = CStr::from_ptr(z_sql).to_string_lossy();
+            let profile_fn: fn(&str, Duration) = unsafe { mem::transmute(p_arg) };
+            let s = unsafe { CStr::from_ptr(z_sql).to_string_lossy() };
 
             let duration = Duration::from_nanos(nanoseconds);
             drop(catch_unwind(|| profile_fn(&s, duration)));
@@ -203,17 +203,17 @@ impl Connection {
             p: *mut c_void,
             x: *mut c_void,
         ) -> c_int {
-            let trace_fn: fn(TraceEvent<'_>) = mem::transmute(ctx);
+            let trace_fn: fn(TraceEvent<'_>) = unsafe { mem::transmute(ctx) };
             drop(catch_unwind(|| match evt {
                 ffi::SQLITE_TRACE_STMT => {
-                    let str = CStr::from_ptr(x as *const c_char).to_string_lossy();
+                    let str = unsafe { CStr::from_ptr(x as *const c_char).to_string_lossy() };
                     trace_fn(TraceEvent::Stmt(
                         StmtRef::new(p as *mut ffi::sqlite3_stmt),
                         &str,
                     ))
                 }
                 ffi::SQLITE_TRACE_PROFILE => {
-                    let ns = *(x as *const i64);
+                    let ns = unsafe { *(x as *const i64) };
                     trace_fn(TraceEvent::Profile(
                         StmtRef::new(p as *mut ffi::sqlite3_stmt),
                         Duration::from_nanos(u64::try_from(ns).unwrap_or_default()),
@@ -247,7 +247,10 @@ impl Connection {
 
 #[cfg(test)]
 mod test {
-    use std::sync::{LazyLock, Mutex};
+    // use std::sync::{LazyLock, Mutex};
+    use lazy_static::lazy_static;
+    use std::sync::Mutex;
+    
     use std::time::Duration;
 
     use crate::{Connection, Result};
@@ -255,8 +258,13 @@ mod test {
     #[test]
     #[allow(deprecated)]
     fn test_trace() -> Result<()> {
+        /*
         static TRACED_STMTS: LazyLock<Mutex<Vec<String>>> =
             LazyLock::new(|| Mutex::new(Vec::new()));
+        */
+        lazy_static! {
+            static ref TRACED_STMTS: Mutex<Vec<String>> = Mutex::new(Vec::new());
+        }
         fn tracer(s: &str) {
             let mut traced_stmts = TRACED_STMTS.lock().unwrap();
             traced_stmts.push(s.to_owned());
@@ -284,8 +292,13 @@ mod test {
     #[test]
     #[allow(deprecated)]
     fn test_profile() -> Result<()> {
+        /*
         static PROFILED: LazyLock<Mutex<Vec<(String, Duration)>>> =
             LazyLock::new(|| Mutex::new(Vec::new()));
+        */
+        lazy_static! {
+            static ref PROFILED: Mutex<Vec<(String, Duration)>> = Mutex::new(Vec::new());
+        }
         fn profiler(s: &str, d: Duration) {
             let mut profiled = PROFILED.lock().unwrap();
             profiled.push((s.to_owned(), d));

@@ -85,7 +85,7 @@ unsafe fn report_error(ctx: *mut sqlite3_context, err: &Error) {
 }
 
 extern "C" fn free_boxed_value<T>(p: *mut c_void) {
-    drop(Box::from_raw(p.cast::<T>()));
+    unsafe { drop(Box::from_raw(p.cast::<T>())); }
 }
 
 /// Context is a wrapper for the SQLite function
@@ -577,21 +577,21 @@ impl InnerConnection {
             F: Fn(&Context<'_>) -> Result<T>,
             T: SqlFnOutput,
         {
-            let args = slice::from_raw_parts(argv, argc as usize);
+            let args = unsafe { slice::from_raw_parts(argv, argc as usize) };
             let r = catch_unwind(|| {
-                let boxed_f: *const F = ffi::sqlite3_user_data(ctx).cast::<F>();
+                let boxed_f: *const F = unsafe { ffi::sqlite3_user_data(ctx).cast::<F>() };
                 assert!(!boxed_f.is_null(), "Internal error - null function pointer");
                 let ctx = Context { ctx, args };
-                (*boxed_f)(&ctx)
+                unsafe { (*boxed_f)(&ctx) }
             });
             let t = match r {
                 Err(_) => {
-                    report_error(ctx, &Error::UnwindingPanic);
+                    unsafe { report_error(ctx, &Error::UnwindingPanic); }
                     return;
                 }
                 Ok(r) => r,
             };
-            sql_result(ctx, args, t);
+            unsafe { sql_result(ctx, args, t); }
         }
 
         let boxed_f: *mut F = Box::into_raw(Box::new(x_func));
@@ -709,8 +709,8 @@ extern "C" fn call_boxed_step<A, D, T>(
     A: RefUnwindSafe + UnwindSafe,
     D: Aggregate<A, T>,
     T: SqlFnOutput,
-{
-    let Some(pac) = aggregate_context(ctx, size_of::<*mut A>()) else {
+{ unsafe {
+    let Some(pac) = aggregate_context(ctx, std::mem::size_of::<*mut A>()) else {
         ffi::sqlite3_result_error_nomem(ctx);
         return;
     };
@@ -744,7 +744,7 @@ extern "C" fn call_boxed_step<A, D, T>(
         Ok(_) => {}
         Err(err) => report_error(ctx, &err),
     };
-}
+} }
 
 #[cfg(feature = "window")]
 extern "C" fn call_boxed_inverse<A, W, T>(
@@ -755,7 +755,7 @@ extern "C" fn call_boxed_inverse<A, W, T>(
     A: RefUnwindSafe + UnwindSafe,
     W: WindowAggregate<A, T>,
     T: SqlFnOutput,
-{
+{ unsafe {
     let Some(pac) = aggregate_context(ctx, size_of::<*mut A>()) else {
         ffi::sqlite3_result_error_nomem(ctx);
         return;
@@ -784,7 +784,7 @@ extern "C" fn call_boxed_inverse<A, W, T>(
         Ok(_) => {}
         Err(err) => report_error(ctx, &err),
     };
-}
+} }
 
 extern "C" fn call_boxed_final<A, D, T>(ctx: *mut sqlite3_context)
 where
@@ -794,7 +794,7 @@ where
 {
     // Within the xFinal callback, it is customary to set N=0 in calls to
     // sqlite3_aggregate_context(C,N) so that no pointless memory allocations occur.
-    let a: Option<A> = match aggregate_context(ctx, 0) {
+    let a: Option<A> = unsafe { match aggregate_context(ctx, 0) {
         Some(pac) =>
         {
             #[allow(clippy::unnecessary_cast)]
@@ -806,25 +806,25 @@ where
             }
         }
         None => None,
-    };
+    }};
 
     let r = catch_unwind(|| {
-        let boxed_aggr: *mut D = ffi::sqlite3_user_data(ctx).cast::<D>();
+        let boxed_aggr: *mut D = unsafe { ffi::sqlite3_user_data(ctx).cast::<D>() };
         assert!(
             !boxed_aggr.is_null(),
             "Internal error - null aggregate pointer"
         );
         let mut ctx = Context { ctx, args: &mut [] };
-        (*boxed_aggr).finalize(&mut ctx, a)
+        unsafe { (*boxed_aggr).finalize(&mut ctx, a) }
     });
     let t = match r {
         Err(_) => {
-            report_error(ctx, &Error::UnwindingPanic);
+            unsafe { report_error(ctx, &Error::UnwindingPanic); }
             return;
         }
         Ok(r) => r,
     };
-    sql_result(ctx, &[], t);
+    unsafe { sql_result(ctx, &[], t); }
 }
 
 #[cfg(feature = "window")]
