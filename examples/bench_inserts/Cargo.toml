@@ -1,0 +1,8 @@
+[package]
+name = "bench_inserts"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+itoa = { version = "1.0.15" }
+rusqlite = { path = "../.." }
