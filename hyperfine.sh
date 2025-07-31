@@ -29,6 +29,7 @@ for F in $TARGETS; do
     if [ "$BUILD" = '1' ] || [ ! -e "target/release/$F" ]; then
         cargo build --release --package $F
     fi
+    du -sh "target/release/$F"
 done
 
 BENCH=1 hyperfine \
