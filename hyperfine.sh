@@ -32,7 +32,7 @@ for F in $TARGETS; do
 done
 
 BENCH=1 hyperfine \
---prepare 'rm target/db.sqlite*' \
+--prepare 'rm -f target/db.sqlite*' \
 --sort command -w 0 -r 1 \
 './target/release/bench_inserts 0' \
 './target/release/bench_inserts 1' \
