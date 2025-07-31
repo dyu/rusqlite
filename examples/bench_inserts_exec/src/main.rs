@@ -16,7 +16,7 @@ PRAGMA optimize=0x10002;
 CREATE TABLE IF NOT EXISTS bench_simple (
     id INTEGER NOT NULL CONSTRAINT bench_simple_pkey PRIMARY KEY,
     ts INTEGER NOT NULL,
-    name TEXT    NOT NULL
+    name TEXT NOT NULL
 );
 ";
 
